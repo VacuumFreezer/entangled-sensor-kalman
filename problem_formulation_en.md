@@ -4,20 +4,51 @@
 
 ## 0　The direction in one paragraph
 
-Several quantum sensors, for example atomic magnetometers, are placed at different locations and jointly track a field that changes over time. Every measurement is noisy, so an algorithm is needed that turns a stream of noisy measurements into the best estimate of the field and also reports how reliable that estimate is. That algorithm is the Kalman filter. The sensors can share entanglement, which turns several sensors into one more precise sensor. Entanglement is expensive, however, and an entangled measurement is sensitive to only one combination of the field.
+Several quantum sensors, for example atomic magnetometers, are placed at different locations and jointly track a field that changes over time and across space. What is tracked is not the value at each location but a few spatial modes of the field, for example its uniform component and its gradient. Every measurement is noisy, so an algorithm is needed that turns a stream of noisy measurements into the best estimate of the field and also reports how reliable that estimate is. That algorithm is the Kalman filter. The sensors can share entanglement, which turns several sensors into one more precise sensor. Entanglement is expensive, however, and an entangled measurement is sensitive to only one combination of the field.
 
 The question studied in this direction is: **using the uncertainty reported by the Kalman filter, decide when and among which sensors to use entanglement, and how long each measurement lasts, so that the tracking error is minimized.**
 
-How to read: Sections 1 and 2 explain the Kalman filter. Section 3 explains what kind of measurement a quantum sensor provides and what entanglement changes. Section 4 is the formal problem formulation. Sections 5 and 6 are the two toy models. Section 7 summarizes what is new. A glossary and self-check questions are at the end.
+How to read: Section 1 says what is measured and maps it to problems studied in the literature. Section 2 explains the Kalman filter. Section 3 explains what kind of measurement a quantum sensor provides and what entanglement changes. Section 4 is the formal problem formulation. Sections 5 and 6 are the two toy models. Section 7 summarizes what is new. A glossary and self-check questions are at the end.
 
 ## 1　The problem
 
-A magnetic field $x(t)$ drifts randomly over time. We cannot see $x$ directly; we can only measure it from time to time, and every measurement is noisy. Two questions must be answered:
+### 1.1　One sensor: tracking a number that changes in time
+
+A magnetic field in general depends on both time and position, $B(\mathbf r,t)$. A sensor at $\mathbf r_j$ measures only the value at its own location, $B(\mathbf r_j,t)$. Sections 2 and 3 explain the method with a single sensor, which sees a number that changes only in time, $x(t)=B(\mathbf r_1,t)$. The field is position-independent there only because there is one position. Section 1.2 says what is measured with several sensors.
+
+The value $x(t)$ drifts randomly over time. We cannot see $x$ directly; we can only measure it from time to time, and every measurement is noisy. Two questions must be answered:
 
 1. Given all measurements so far, what is the most likely current value of $x$?
 2. How reliable is that answer?
 
 Using only the latest measurement leaves too much noise. Averaging all measurements uses data that are long out of date, because the field keeps changing. The right approach lies in between: old information is used, but discounted over time. For linear models with Gaussian noise, the Kalman filter gives the optimal way to discount.
+
+### 1.2　Several sensors: the targets are spatial modes of the field
+
+Over the region occupied by the sensors, expand the field in spatial modes:
+
+$$B(\mathbf r,t)=\sum_{k=1}^{d}x_k(t)\,f_k(\mathbf r).$$
+
+The $f_k$ are fixed spatial functions, usually the first terms of a Taylor expansion. For sensors along a line, $f_1=1$ is the uniform component, $f_2=2z/L$ the gradient ($L$ is the array length), and $f_3$ the quadratic term (curvature). The quantities to estimate and track are the coefficients $x_k(t)$. A sensor at $\mathbf r_j$ sees
+
+$$B(\mathbf r_j,t)=\sum_{k}f_k(\mathbf r_j)\,x_k(t),$$
+
+a linear combination of the modes whose coefficients are set by the sensor's position. In the language of Section 2.7, **the position of a sensor sets one row of the output matrix.** For example, with two sensors at $z=\pm L/2$ and the first two modes kept, write $b=x_1$ and $g=x_2$; the two sensors see $b+g$ and $b-g$. Both toy models below use this example.
+
+The targets are mode coefficients rather than the values at individual locations, for two reasons.
+
+1. **Finitely many sensors determine finitely many degrees of freedom.** $N$ sensors give $N$ linear combinations, and modes that are not kept alias into those that are; two sensors, for instance, cannot separate the uniform component from the curvature. When the sources are far from the array compared with its size, higher modes decay as powers of that ratio and the truncation error is small.
+2. **Entanglement helps only for combinations of values at several locations.** For estimating the value at each location separately, unentangled sensors are already optimal ([Proctor–Knott–Dunningham, PRL 2018](https://arxiv.org/abs/1707.06252)). For a linear function of the local values, entanglement reaches the Heisenberg limit ([Eldredge et al., PRA 2018](https://arxiv.org/abs/1607.04646)), and the size of the advantage depends on the coefficients of the function ([Rubio et al., J. Phys. A 2020](https://arxiv.org/abs/2003.04867)). Mode coefficients are such functions.
+
+**Targets and disturbances.** Which modes are targets and which are disturbances depends on the application. The table lists three cases studied in the literature; each toy model corresponds to one of them.
+
+| Target | Other modes | Application | Prior work | Here |
+|---|---|---|---|---|
+| Uniform component $x_1$ | None: the field is uniform over the array, $d=1$ | Axion dark-matter searches, where the field's coherence length far exceeds the array and every sensor sees the same signal; atomic-clock networks, where the nodes jointly track a drifting local-oscillator frequency with GHZ states | [Brady et al., PRX Quantum 2022](https://arxiv.org/abs/2203.05375); [Kómár et al., Nat. Phys. 2014](https://arxiv.org/abs/1310.6045) | Section 5.1 |
+| Gradient $x_2$, or a higher mode | Lower modes are disturbances (common-mode noise) and change fast | Gradiometry: nearby sources such as the heart or brain produce a clear gradient across the array, while distant sources (power lines, traffic, geomagnetic fluctuations) produce a nearly uniform field that is much larger than the signal | Theory [Sekatski–Wölk–Dür, PRR 2020](https://arxiv.org/abs/1905.06765); experiment [Bate et al., PRL 2025](https://arxiv.org/abs/2501.08940) (three ions, target the quadratic term, constant and gradient as noise); unentangled OPM gradiometer for cardiac and brain signals [QST 2024](https://arxiv.org/abs/2402.10113) | Section 5.2 |
+| Uniform component and gradient | Both are targets | Measuring the field and its gradient together | [Li et al., Science 2026](https://arxiv.org/abs/2504.08677) (a BEC split into parts, mean and gradient); [Zhang et al., Nat. Commun. 2026](https://arxiv.org/abs/2412.18398) (superconducting modules, vector field and gradient) | Section 6 |
+
+Apart from Kómár 2014, these works estimate the mode coefficients as constant parameters. Here every coefficient $x_k(t)$ drifts randomly, so the problem changes from parameter estimation to tracking. Tracking adds two things absent from parameter estimation: the measurement duration must be traded against how fast the field changes (Section 3.2), and with several modes, when to entangle and which combination to entangle becomes a scheduling problem (Section 6).
 
 ## 2　The Kalman filter, starting in one dimension
 
@@ -109,7 +140,7 @@ $$P^-=APA^\top+Q,\quad K=P^-C^\top(CP^-C^\top+R)^{-1},\quad \hat x^+=\hat x^-+K(
 
 $C$ is the **output matrix**: each row says which linear combination of the state a measurement sees. The diagonal entries of $P$ are the error variances of the components, so $P$ shows which component is currently least known. If a different $C$ can be chosen at each step, choosing it is the **sensor scheduling** problem. This direction studies such a problem, with the choices of $C$ provided by entanglement.
 
-Example: two sensors whose local fields are $b+g$ and $b-g$. Measured separately, $C=\begin{pmatrix}1&1\\1&-1\end{pmatrix}$ and both components are seen. Section 3.3 shows that an entangled measurement can give $C=(0,\;2)$: it sees only $g$, with twice the gain.
+Example: the two sensors of Section 1.2, whose local fields are $b+g$ and $b-g$. Measured separately, $C=\begin{pmatrix}1&1\\1&-1\end{pmatrix}$ and both components are seen. Section 3.3 shows that an entangled measurement can give $C=(0,\;2)$: it sees only $g$, with twice the gain.
 
 ## 3　What measurement a quantum sensor provides
 
@@ -177,13 +208,13 @@ We take the fully centralized version: all outcomes go to one coordinator, which
 
 ```mermaid
 flowchart LR
-  F["Time-varying field x(t)"] --> S["Quantum sensors<br/>accumulate phase"]
+  F["Field B(r,t)<br/>mode coefficients x(t)"] --> S["Quantum sensors<br/>accumulate phase"]
   E["Entanglement supply<br/>(limited rate)"] --> S
   S -- "outcomes ±1" --> KF["Coordinator: Kalman filter<br/>estimate x̂ and error covariance P"]
   KF -- "choose configuration u (which sensors to entangle),<br/>duration T, feedback phase" --> S
 ```
 
-**State and dynamics.** Field modes $x\in\mathbb R^d$ (e.g. mean and gradient), $dx=Q^{1/2}dW$. There are $N$ sensors and sensor $i$ sees $c_i^\top x$.
+**State and dynamics.** The state is the vector of mode coefficients of Section 1.2, $x=(x_1,\dots,x_d)\in\mathbb R^d$, each an independent random walk: $dx=Q^{1/2}dW$ with $Q=\mathrm{diag}(q_1,\dots,q_d)$. There are $N$ sensors; sensor $j$ sits at $\mathbf r_j$ and sees $B(\mathbf r_j,t)=c_j^\top x$ with $c_j=\big(f_1(\mathbf r_j),\dots,f_d(\mathbf r_j)\big)^\top$.
 
 **Decisions.** At the start of cycle $n$ the coordinator chooses:
 
@@ -203,6 +234,8 @@ flowchart LR
 
 $$J=\lim_{\tau\to\infty}\frac1\tau\int_0^\tau E\big[(x-\hat x)^\top W(x-\hat x)\big]\,dt .$$
 
+The weight matrix $W$ selects the targets: target modes get positive weight and disturbance modes get zero weight. The three cases in the table of Section 1.2 are $d=1$; $W=\mathrm{diag}(0,1)$; and both diagonal entries of $W$ positive.
+
 **Two questions.**
 
 1. **Is there an advantage?** Under the best policy for each, how much lower is the error of an entangled network than that of an unentangled one, and under what conditions? See Section 5.
@@ -215,6 +248,8 @@ There is only one mode to measure, so there is no scheduling question; we compar
 The numbers come from two sources. "Linear Kalman filter" uses the linearization of Section 3.2. "Exact simulation" keeps the true $\pm1$ outcomes and estimates with a particle filter, a numerical Bayes filter that handles the nonlinear measurement, with lock parameter $c=0.5$. Ratios agree between the two; constants differ slightly.
 
 ### 5.1　$k$ sensors tracking one field
+
+Here the field is assumed uniform over the sensors, so there is one mode and all $k$ sensors see the same value. This is a modeling assumption, valid when the field's spatial correlation length is much larger than the array. It is the first row of the table in Section 1.2: axion dark-matter searches and atomic-clock networks. The same model also describes $k$ atoms in one atomic clock tracking a common local oscillator.
 
 From Section 3.2, $J\propto\mathcal I^{-1/3}$. With $\mathcal I=k$ unentangled and $\mathcal I=k^2$ for a GHZ state,
 
@@ -243,7 +278,7 @@ Exact simulation, MSE in units of $q^{2/3}$.
 
 ### 5.2　Two sensors tracking a gradient under common-mode noise
 
-The two sensors see $b+g$ and $b-g$. The target is the gradient $g$; the mean $b$ is a disturbance, for example a drifting ambient field, that changes $\rho$ times faster ($q_b=\rho\,q_g$).
+The two sensors sit at $z=\pm L/2$ and see $b+g$ and $b-g$ (Section 1.2). The target is the gradient $g$; the uniform component $b$ is a disturbance that changes $\rho$ times faster ($q_b=\rho\,q_g$). This is gradiometry, the second row of the table in Section 1.2: a nearby source produces the gradient signal, while the ambient field from distant sources is the same at both sensors, much larger than the signal and faster-changing, so $\rho\gg1$. The constant-parameter version is the theory of Sekatski–Wölk–Dür 2020 and the experiment of Bate 2025.
 
 - **The entangled pair** $(|01\rangle+|10\rangle)/\sqrt2$ accumulates only $2g$ and does not see $b$ at all; its error does not depend on $\rho$.
 - **Without entanglement**, either both $b$ and $g$ are tracked, and $T$ is limited by the fast $b$, or only the product of the two outcomes is used (correlation spectroscopy), which carries a quarter of the information of the entangled pair.
@@ -265,7 +300,7 @@ Both modes must be tracked and entanglement is supplied at a limited rate. This 
 
 ### 6.1　Setup
 
-Two sensors with fields $b+g$ and $b-g$; $b$ changes fast ($q_b=1000\,q_g$). Both modes are tracked, and the cost is the sum of their normalized errors:
+Two sensors with fields $b+g$ and $b-g$; $b$ changes fast ($q_b=1000\,q_g$), as in the gradiometry setting of Section 5.2. The difference is that both modes are tracked, the third row of the table in Section 1.2, as in experiments that measure the field and its gradient together (Li 2026; Zhang 2026). The cost is the sum of their normalized errors:
 
 $$J=\frac{\mathrm{MSE}_b}{q_b^{2/3}}+\frac{\mathrm{MSE}_g}{q_g^{2/3}} .$$
 
@@ -312,7 +347,7 @@ So **the measurement duration must be set online from the error covariance (lock
 
 | Ingredient | Status |
 |---|---|
-| Several sensors share entanglement to estimate a constant parameter | Known; theory and experiments with 2–4 nodes |
+| Several sensors share entanglement to estimate one or a few field modes as constant parameters | Known; theory and experiments with 2–4 nodes (table in Section 1.2) |
 | Kalman filtering of a time-varying signal with a single quantum sensor | Known |
 | Choosing measurements from the error covariance (sensor scheduling) | Classical problem with mature theory |
 | All three together: a Kalman filter driving an entangled sensor network to track a time-varying field | No prior work found |
@@ -329,7 +364,9 @@ The toy models show that the combination is necessary: with several modes, unsch
 
 | Term | Meaning |
 |---|---|
-| state | the quantity to estimate; here, the field modes |
+| state | the quantity to estimate; here, the coefficients of the field modes |
+| spatial mode | one term $f_k(\mathbf r)$ of the expansion of the field in position, e.g. uniform component, gradient, curvature |
+| common-mode noise | a disturbance that is the same at all sensors; here, the uniform component |
 | process noise | the random change of the state, with intensity $q$ or $Q$ |
 | measurement noise | the random error of a measurement, with variance $r$ or $R$ |
 | error covariance | $P$, the filter's estimate of its own error |
@@ -355,31 +392,37 @@ It increases. $P^+=\tfrac12(\sqrt{0.25+0.5}-0.5)\approx0.18$, $P^-\approx0.68$, 
 </details>
 
 <details>
-<summary>2. Why can P be computed in advance, and what does that imply for scheduling?</summary>
+<summary>2. Why are the targets the coefficients of the field modes rather than the values at the sensor locations?</summary>
+
+Two reasons. $N$ sensors determine only $N$ linear combinations, so only finitely many modes can be estimated. More importantly, for estimating the value at each location separately, unentangled sensors are already optimal and entanglement does not help; entanglement helps only for combinations of values at several locations, and mode coefficients are such combinations.
+</details>
+
+<details>
+<summary>3. Why can P be computed in advance, and what does that imply for scheduling?</summary>
 
 In a linear Gaussian model the predict and update equations for $P$ involve only $q$, $\Delta$, $r$ and $C$, never $y$. Once the measurement used at each step is fixed, the trajectory of $P$ is determined, so the schedule can be optimized offline. The conclusion of Section 6.3 follows from this.
 </details>
 
 <details>
-<summary>3. A GHZ state raises the information per cycle from k to k². Why does the error improve only from k^(-1/3) to k^(-2/3), and not from 1/k to 1/k²?</summary>
+<summary>4. A GHZ state raises the information per cycle from k to k². Why does the error improve only from k^(-1/3) to k^(-2/3), and not from 1/k to 1/k²?</summary>
 
 When tracking a time-varying signal, the error has two parts: the measurement noise and the drift of the field during the measurement. Part of the extra information is spent on shortening $T$ to reduce the drift, so $J\propto\mathcal I^{-1/3}$. Only for a constant parameter, with no drift, does the error scale as $1/\mathcal I$.
 </details>
 
 <details>
-<summary>4. Why can a GHZ measurement not do without the Kalman filter's prediction?</summary>
+<summary>5. Why can a GHZ measurement not do without the Kalman filter's prediction?</summary>
 
 The GHZ fringe is $k$ times narrower, so an outcome has a definite meaning only when $|\varphi-\hat\varphi|$ is small. $\hat\varphi$ must come from the filter's prediction, and $T$ must be kept short enough according to the filter's $P$; otherwise phase slips occur.
 </details>
 
 <details>
-<summary>5. In toy model 2 all three measurements carry the same total information. Where does the benefit of entanglement come from?</summary>
+<summary>6. In toy model 2 all three measurements carry the same total information. Where does the benefit of entanglement come from?</summary>
 
 From choosing $T$ separately for each mode. Measuring separately, $T$ is limited by the fast mode $b$. An entangled measurement sees only $g$, so its $T$ is limited only by $g$ and can be much longer. Information grows as $T^2$, so one long G cycle gives $g$ far more information than one short S cycle.
 </details>
 
 <details>
-<summary>6. In toy model 2, why is using each pair on arrival worse than not using entanglement at all?</summary>
+<summary>7. In toy model 2, why is using each pair on arrival worse than not using entanglement at all?</summary>
 
 An entangled measurement sees only one mode. Used back to back, it leaves the other mode unmeasured for a long cycle, and the error of the fast mode grows quickly. The more entanglement is available, the worse the unscheduled use becomes.
 </details>

@@ -4,20 +4,51 @@
 
 ## 0　一段话说明这个方向
 
-在不同位置放多个 quantum sensors（例如测磁场的 atomic magnetometers），一起跟踪一个随时间变化的场。每次测量都有噪声，所以需要一个算法，把一连串带噪声的测量变成对场的最好估计，并且给出这个估计的可信程度。这个算法就是 Kalman filter。Sensors 之间可以共享 entanglement，把几个 sensors 变成一个更精确的 sensor。但 entanglement 很贵，而且纠缠后的测量只对场的某一个组合敏感。
+在不同位置放多个 quantum sensors（例如测磁场的 atomic magnetometers），一起跟踪一个随时间和位置变化的场。要跟踪的不是每个位置上的值，而是场的几个空间 modes，例如均匀分量和梯度。每次测量都有噪声，所以需要一个算法，把一连串带噪声的测量变成对场的最好估计，并且给出这个估计的可信程度。这个算法就是 Kalman filter。Sensors 之间可以共享 entanglement，把几个 sensors 变成一个更精确的 sensor。但 entanglement 很贵，而且纠缠后的测量只对场的某一个组合敏感。
 
 这个方向研究的问题是：**根据 Kalman filter 给出的不确定度，决定何时、在哪些 sensors 之间使用 entanglement，以及每次测多久，使跟踪误差最小。**
 
-读法：第 1、2 节讲 Kalman filter；第 3 节讲 quantum sensor 给出什么样的测量，以及 entanglement 改变了什么；第 4 节是正式的 problem formulation；第 5、6 节是两个 toy model；第 7 节总结创新点。文末有术语表和自测题。
+读法：第 1 节说明要测的是什么，并对应到已有文献里的问题；第 2 节讲 Kalman filter；第 3 节讲 quantum sensor 给出什么样的测量，以及 entanglement 改变了什么；第 4 节是正式的 problem formulation；第 5、6 节是两个 toy model；第 7 节总结创新点。文末有术语表和自测题。
 
 ## 1　要解决的问题
 
-设一个磁场 $x(t)$ 随时间随机漂移。我们看不到 $x$ 本身，只能每隔一段时间测一次，每次测量都有噪声。要回答两个问题：
+### 1.1　一个 sensor：跟踪一个随时间变化的数
+
+磁场一般既随时间变，也随位置变，记作 $B(\mathbf r,t)$。放在 $\mathbf r_j$ 的 sensor 只能测到它所在位置的值 $B(\mathbf r_j,t)$。第 2、3 节只用一个 sensor 讲方法，它看到的是一个只随时间变化的数 $x(t)=B(\mathbf r_1,t)$。这两节里场与位置无关，只是因为只有一个位置。多个 sensors 时要测什么，见第 1.2 节。
+
+$x(t)$ 随时间随机漂移。我们看不到 $x$ 本身，只能每隔一段时间测一次，每次测量都有噪声。要回答两个问题：
 
 1. 根据到现在为止的所有测量，$x$ 现在最可能是多少？
 2. 这个答案有多可信？
 
 只用最新一次测量，噪声太大。把所有测量平均，又会用到早已过时的数据，因为场一直在变。正确的做法介于两者之间：旧信息要用，但要随时间打折扣。在线性、高斯噪声的条件下，Kalman filter 给出最优的打折扣方式。
+
+### 1.2　多个 sensors：要测的是场的空间 modes
+
+在 sensors 所在的区域里，把场按空间 modes 展开：
+
+$$B(\mathbf r,t)=\sum_{k=1}^{d}x_k(t)\,f_k(\mathbf r).$$
+
+$f_k$ 是事先选定的空间函数，常用 Taylor 展开的前几项。沿一条线排列时，$f_1=1$ 是均匀分量，$f_2=2z/L$ 是梯度（$L$ 是 array 的长度），$f_3$ 是二次项（曲率）。要估计和跟踪的是系数 $x_k(t)$。位于 $\mathbf r_j$ 的 sensor 看到
+
+$$B(\mathbf r_j,t)=\sum_{k}f_k(\mathbf r_j)\,x_k(t),$$
+
+即 modes 的一个线性组合，组合系数由 sensor 的位置决定。用第 2.7 节的话说，**sensor 的位置决定 output matrix 的一行。** 例如两个 sensors 放在 $z=\pm L/2$，只保留前两个 modes，记 $b=x_1$、$g=x_2$，两个 sensors 看到 $b+g$ 和 $b-g$。下文的两个 toy model 都用这个例子。
+
+目标选 modes 的系数而不是每个位置上的值，原因有两个。
+
+1. **有限个 sensors 只能确定有限个自由度。** $N$ 个 sensors 只给出 $N$ 个线性组合，没有保留的 modes 会混进保留的 modes 里，例如两个 sensors 分不清均匀分量和曲率。场源到 array 的距离远大于 array 的尺寸时，高阶 modes 按两者之比的幂次变小，截断的误差小。
+2. **Entanglement 只对多个位置的值的组合有用。** 估计每个位置各自的值时，不纠缠的 sensors 已经最优（[Proctor–Knott–Dunningham, PRL 2018](https://arxiv.org/abs/1707.06252)）。估计各位置值的一个线性组合时，纠缠能把误差降到 Heisenberg limit（[Eldredge et al., PRA 2018](https://arxiv.org/abs/1607.04646)），优势有多大取决于组合的系数（[Rubio et al., J. Phys. A 2020](https://arxiv.org/abs/2003.04867)）。Mode 的系数正是这样的组合。
+
+**目标和干扰。** 哪些 modes 是目标、哪些是干扰，由应用决定。下表是已有文献研究过的三种情形，本文的 toy model 各对应一种。
+
+| 目标 | 其他 modes | 应用 | 已有工作 | 本文 |
+|---|---|---|---|---|
+| 均匀分量 $x_1$ | 没有：场在 array 内均匀，$d=1$ | Axion dark matter 搜索，场的相干长度远大于 array，各 sensor 看到同一个信号；atomic clock 网络，各节点用 GHZ 共同跟踪漂移的 local oscillator 频率 | [Brady et al., PRX Quantum 2022](https://arxiv.org/abs/2203.05375)；[Kómár et al., Nat. Phys. 2014](https://arxiv.org/abs/1310.6045) | 第 5.1 节 |
+| 梯度 $x_2$，或更高阶的 mode | 低阶 modes 是干扰（共模噪声），变化快 | Gradiometry：心脏、大脑等近处的源在 array 上产生明显的梯度；远处的源（电网、交通、地磁波动）的场在 array 上几乎均匀，而且比信号大得多 | 理论 [Sekatski–Wölk–Dür, PRR 2020](https://arxiv.org/abs/1905.06765)；实验 [Bate et al., PRL 2025](https://arxiv.org/abs/2501.08940)（3 个离子，目标是二次项，常数和梯度是干扰）；不纠缠的 OPM gradiometer 测心磁和脑磁 [QST 2024](https://arxiv.org/abs/2402.10113) | 第 5.2 节 |
+| 均匀分量和梯度 | 两者都是目标 | 同时测场和梯度 | [Li et al., Science 2026](https://arxiv.org/abs/2504.08677)（BEC 分成几份，测 mean 和 gradient）；[Zhang et al., Nat. Commun. 2026](https://arxiv.org/abs/2412.18398)（超导 modules，测 vector field 和 gradient） | 第 6 节 |
+
+表中除 Kómár 2014 外，都把 mode 的系数当作不变的参数来估计。本文让每个系数 $x_k(t)$ 随时间随机漂移，问题从参数估计变成跟踪。跟踪带来两件参数估计里没有的事：每次测多久要和场的变化速度折中（第 3.2 节）；有多个 modes 时，什么时候纠缠、纠缠哪个组合成为一个调度问题（第 6 节）。
 
 ## 2　Kalman filter：从一维讲起
 
@@ -109,7 +140,7 @@ $$P^-=APA^\top+Q,\quad K=P^-C^\top(CP^-C^\top+R)^{-1},\quad \hat x^+=\hat x^-+K(
 
 $C$ 叫 **output matrix**，它的每一行说明一次测量看到的是状态的哪个线性组合。$P$ 的对角元是各个分量的误差方差，所以 $P$ 告诉我们现在哪个分量最不清楚。如果每一步可以选不同的 $C$，"每一步选哪个 $C$" 就是 **sensor scheduling** 问题。这个方向研究的就是这类问题，只是 $C$ 的选项由 entanglement 给出。
 
-例：两个 sensors，位置上的场分别是 $b+g$ 和 $b-g$。各自测量时 $C=\begin{pmatrix}1&1\\1&-1\end{pmatrix}$，两个分量都能看到。第 3.3 节会看到，纠缠后可以得到 $C=(0,\;2)$：只看 $g$，但增益加倍。
+例：第 1.2 节的两个 sensors，位置上的场分别是 $b+g$ 和 $b-g$。各自测量时 $C=\begin{pmatrix}1&1\\1&-1\end{pmatrix}$，两个分量都能看到。第 3.3 节会看到，纠缠后可以得到 $C=(0,\;2)$：只看 $g$，但增益加倍。
 
 ## 3　Quantum sensor 给出什么样的测量
 
@@ -177,13 +208,13 @@ $$T^*=\Big(\frac{2}{\mathcal I q}\Big)^{1/3},\qquad J^*\approx1.09\;q^{2/3}\,\ma
 
 ```mermaid
 flowchart LR
-  F["时变的场 x(t)"] --> S["Quantum sensors<br/>积累 phase"]
+  F["场 B(r,t)<br/>modes 的系数 x(t)"] --> S["Quantum sensors<br/>积累 phase"]
   E["Entanglement 供给<br/>（速率有限）"] --> S
   S -- "测量结果 ±1" --> KF["Coordinator：Kalman filter<br/>估计 x̂ 和 error covariance P"]
   KF -- "选配置 u：纠缠哪些 sensors<br/>选时长 T，设 feedback phase" --> S
 ```
 
-**状态与动态。** 场的 modes $x\in\mathbb R^d$（例如平均值和梯度），$dx=Q^{1/2}dW$。共有 $N$ 个 sensors，sensor $i$ 看到 $c_i^\top x$。
+**状态与动态。** 状态是第 1.2 节的 mode 系数 $x=(x_1,\dots,x_d)\in\mathbb R^d$，每个系数是独立的 random walk：$dx=Q^{1/2}dW$，$Q=\mathrm{diag}(q_1,\dots,q_d)$。共有 $N$ 个 sensors，sensor $j$ 位于 $\mathbf r_j$，看到 $B(\mathbf r_j,t)=c_j^\top x$，其中 $c_j=\big(f_1(\mathbf r_j),\dots,f_d(\mathbf r_j)\big)^\top$。
 
 **决策。** 第 $n$ 个周期开始时选：
 
@@ -203,6 +234,8 @@ flowchart LR
 
 $$J=\lim_{\tau\to\infty}\frac1\tau\int_0^\tau E\big[(x-\hat x)^\top W(x-\hat x)\big]\,dt .$$
 
+权重矩阵 $W$ 选出目标：目标 mode 的权重为正，干扰 mode 的权重为 0。第 1.2 节表中的三种情形分别是 $d=1$；$W=\mathrm{diag}(0,1)$；$W$ 的两个对角元都为正。
+
 **要回答的两个问题。**
 
 1. **有没有优势。** 在各自最优的 policy 下，纠缠的网络比不纠缠的网络误差低多少？需要什么条件？见第 5 节。
@@ -215,6 +248,8 @@ $$J=\lim_{\tau\to\infty}\frac1\tau\int_0^\tau E\big[(x-\hat x)^\top W(x-\hat x)\
 数值有两种来源。"线性 Kalman filter" 用第 3.2 节的线性化。"精确模拟" 保留真实的 ±1 结果，用 particle filter（数值实现的 Bayes filter，处理非线性的测量）估计，lock constraint 取 $c=0.5$。两者的比值一致，常数略有差别。
 
 ### 5.1　$k$ 个 sensors 跟踪同一个场
+
+这里假设场在 sensors 所在的区域里均匀，只有一个 mode，$k$ 个 sensors 看到同一个值。这是一个建模假设，成立的条件是场的空间相关长度远大于 array。它对应第 1.2 节表的第一行：axion dark matter 搜索，以及 atomic clock 网络。同一个模型也描述一个 atomic clock 里 $k$ 个原子跟踪同一个 local oscillator。
 
 由第 3.2 节，$J\propto\mathcal I^{-1/3}$。不纠缠时 $\mathcal I=k$，GHZ 时 $\mathcal I=k^2$：
 
@@ -243,7 +278,7 @@ $$J_{\text{不纠缠}}\propto k^{-1/3},\qquad J_{\text{GHZ}}\propto k^{-2/3}.$$
 
 ### 5.2　两个 sensors 跟踪梯度，存在共模噪声
 
-两个 sensors 的场是 $b+g$ 和 $b-g$。要跟踪的是梯度 $g$；平均值 $b$ 是干扰，比如环境场的漂移，它的变化速度是 $g$ 的 $\rho$ 倍（$q_b=\rho\,q_g$）。
+两个 sensors 放在 $z=\pm L/2$，看到 $b+g$ 和 $b-g$（第 1.2 节）。要跟踪的是梯度 $g$；均匀分量 $b$ 是干扰，它的变化速度是 $g$ 的 $\rho$ 倍（$q_b=\rho\,q_g$）。这是 gradiometry 的情形，对应第 1.2 节表的第二行：近处的源产生梯度信号，远处的环境场在两个 sensors 上相同，比信号大得多，变化也更快，所以 $\rho\gg1$。参数不变的版本是 Sekatski–Wölk–Dür 2020 的理论和 Bate 2025 的实验。
 
 - **纠缠对** $(|01\rangle+|10\rangle)/\sqrt2$ 只积累 $2g$，完全看不到 $b$。误差与 $\rho$ 无关。
 - **不纠缠**时要么同时跟踪 $b$ 和 $g$，$T$ 被变化快的 $b$ 限制；要么只看两个结果的乘积（correlation spectroscopy），information 只有纠缠对的 1/4。
@@ -265,7 +300,7 @@ MSE 以 $q_g^{2/3}$ 为单位。共模噪声强时，不纠缠的误差是纠缠
 
 ### 6.1　设定
 
-两个 sensors，场 $b+g$ 和 $b-g$，$b$ 变化快（$q_b=1000\,q_g$）。两个 mode 都要跟踪，cost 是两者各自归一化后的误差之和：
+两个 sensors，场 $b+g$ 和 $b-g$，$b$ 变化快（$q_b=1000\,q_g$），沿用第 5.2 节的 gradiometry 场景。不同的是两个 mode 都要跟踪，对应第 1.2 节表的第三行，即同时测场和梯度的实验（Li 2026；Zhang 2026）。Cost 是两者各自归一化后的误差之和：
 
 $$J=\frac{\mathrm{MSE}_b}{q_b^{2/3}}+\frac{\mathrm{MSE}_g}{q_g^{2/3}} .$$
 
@@ -312,7 +347,7 @@ Entangled pairs 随机到达，平均速率 $R$，最多存一个。
 
 | 部分 | 状态 |
 |---|---|
-| 多个 sensors 共享 entanglement，估计一个不变的参数 | 已有，理论和 2 到 4 个节点的实验 |
+| 多个 sensors 共享 entanglement，估计场的一个 mode 或几个 modes，参数不变 | 已有，理论和 2 到 4 个节点的实验（第 1.2 节的表） |
 | 用 Kalman filter 处理单个 quantum sensor 的时变信号 | 已有 |
 | 根据 error covariance 选择测量（sensor scheduling） | 经典问题，已有成熟理论 |
 | 三者合在一起：用 Kalman filter 驱动 entangled sensor network 跟踪时变的场 | 没有找到已有工作 |
@@ -329,7 +364,9 @@ Toy model 显示这个组合是必要的：多个 mode 时，不调度的 entang
 
 | 中文 | English | 含义 |
 |---|---|---|
-| 状态 | state | 要估计的量，这里是场的各个 mode |
+| 状态 | state | 要估计的量，这里是场的各个 mode 的系数 |
+| 空间 mode | spatial mode | 场按位置展开的一项 $f_k(\mathbf r)$，例如均匀分量、梯度、曲率 |
+| 共模噪声 | common-mode noise | 在所有 sensors 上相同的干扰，这里是均匀分量 |
 | 过程噪声 | process noise | 状态的随机变化，强度 $q$ 或 $Q$ |
 | 测量噪声 | measurement noise | 测量的随机误差，方差 $r$ 或 $R$ |
 | 误差协方差 | error covariance | $P$，filter 对自己误差的估计 |
@@ -355,31 +392,37 @@ Toy model 显示这个组合是必要的：多个 mode 时，不调度的 entang
 </details>
 
 <details>
-<summary>2. 为什么 P 可以事先算出来？这对调度意味着什么？</summary>
+<summary>2. 为什么目标是场的 modes 的系数，而不是每个 sensor 位置上的值？</summary>
+
+两个原因。$N$ 个 sensors 只能确定 $N$ 个线性组合，所以只能估计有限个 modes。更重要的是，估计每个位置各自的值时，不纠缠的 sensors 已经最优，entanglement 没有用；只有估计多个位置的值的组合时 entanglement 才有用，而 mode 的系数正是这样的组合。
+</details>
+
+<details>
+<summary>3. 为什么 P 可以事先算出来？这对调度意味着什么？</summary>
 
 线性高斯模型里，predict 和 update 的 $P$ 公式只含 $q$、$\Delta$、$r$、$C$，不含 $y$。所以只要决定了每一步用哪种测量，$P$ 的轨迹就确定了，调度可以离线优化。第 6.3 节的结论就来自这一点。
 </details>
 
 <details>
-<summary>3. GHZ 把每次的 information 从 k 提高到 k²，为什么误差只从 k^(-1/3) 变成 k^(-2/3)，而不是从 1/k 变成 1/k²？</summary>
+<summary>4. GHZ 把每次的 information 从 k 提高到 k²，为什么误差只从 k^(-1/3) 变成 k^(-2/3)，而不是从 1/k 变成 1/k²？</summary>
 
 跟踪时变信号时，误差有两部分：测量本身的噪声和测量期间场的漂移。多出来的 information 一部分用于缩短 $T$ 来减少漂移，所以 $J\propto\mathcal I^{-1/3}$。估计不变的参数时没有漂移，才是 $1/\mathcal I$。
 </details>
 
 <details>
-<summary>4. 为什么 GHZ 测量离不开 Kalman filter 的预测？</summary>
+<summary>5. 为什么 GHZ 测量离不开 Kalman filter 的预测？</summary>
 
 GHZ 的 fringe 窄 $k$ 倍，只有 $|\varphi-\hat\varphi|$ 很小时测量结果才有确定含义。$\hat\varphi$ 必须由 filter 的预测给出，$T$ 也必须按 filter 的 $P$ 取得足够短，否则会发生 phase slip。
 </details>
 
 <details>
-<summary>5. Toy model 2 里，三种测量的总 information 相同，entanglement 的好处从哪里来？</summary>
+<summary>6. Toy model 2 里，三种测量的总 information 相同，entanglement 的好处从哪里来？</summary>
 
 来自 $T$ 可以按 mode 分开选。各自测量时 $T$ 被变化快的 $b$ 限制；纠缠测量只看 $g$，$T$ 只受 $g$ 限制，可以长得多。Information 正比于 $T^2$，所以一次长的 G 测量给 $g$ 的 information 远多于一次短的 S 测量。
 </details>
 
 <details>
-<summary>6. 在 Toy model 2 里，pair 一到就用为什么比不用还差？</summary>
+<summary>7. 在 Toy model 2 里，pair 一到就用为什么比不用还差？</summary>
 
 纠缠测量只看一个 mode。连续使用时另一个 mode 在一个长周期里完全没人测，变化快的 mode 的误差随时间快速增长。Entanglement 越充足、不调度就越糟。
 </details>
