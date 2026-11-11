@@ -325,9 +325,9 @@ Entangled pairs 随机到达，平均速率 $R$，最多存一个。
 | 不用 entanglement | 4.85 |
 | pair 一到就用（$b$、$g$ 轮流） | 12.4 |
 | 间隔规则：上一次 G 之后至少隔一段固定时间再用 | 3.70 |
-| 最优 policy（dynamic programming） | 3.74 |
+| 线性模型的最优 policy（dynamic programming），在线查表使用 | 3.74 |
 
-最优 policy 是在线性 Kalman filter 下算出来的，在线性模型里它比间隔规则好 0.7%；精确模拟里两者相差 1%，在随机波动范围内。
+**最优 policy 怎样算的。** 线性 Kalman filter 里，$P$ 的演化只取决于每个周期选了哪种测量（第 2.6 节），所以 $(P_b,P_g,\text{缓存里有没有 pair})$ 构成一个 Markov decision process 的状态。每个周期的动作是测量类型（S、B、G，以及只看两个结果乘积的 correlation spectroscopy）和 $T$（lock constraint 上限的 0.4 到 1 倍）；这个周期的 cost 是期间累积的误差；pair 是否到达是随机的。目标是单位时间的平均 cost，用 value iteration 在 $100\times100\times2$ 的网格上求解，得到一张从状态到动作的表。精确模拟里，用 particle filter 给出的实时 variance 查这张表。所以 3.74 是线性模型的最优 policy 在精确模型里的表现，精确模型本身的最优 policy 没有算。在线性模型里，它比间隔规则好 0.7%；在精确模拟里，两者相差 1%，在随机波动范围内。
 
 ![fig4](toy_model_A/fig4_scheduling.png)
 
@@ -342,6 +342,8 @@ Entangled pairs 随机到达，平均速率 $R$，最多存一个。
 第 2.6 节说过，线性模型里 $P$ 不依赖测量值，所以 "什么时候用 G" 可以事先算好，等价于一个固定间隔。精确模拟里测量是非线性的，$P$ 会随数据波动，在线使用实时 $P$ 的 policy 与离线的间隔规则相差不到 1%。
 
 所以 **"测多久" 必须由 error covariance 在线决定（lock constraint），"什么时候纠缠、纠缠哪些" 可以离线设计。** 这与经典 sensor scheduling 的结论一致。
+
+**最优 policy 算不出来时。** 这个 toy model 的状态只有两个 variance 和一个缓存位，网格上能算。节点和 modes 多时，状态是整个 $P$ 矩阵加上每条 link 的缓存，动作是所有纠缠配置，dynamic programming 算不动；它还需要准确知道各个 $q_k$ 和供给速率。但计算量本身不要求根据测量结果调整调度。线性模型里，任何依据 $P$ 的在线规则（例如每步选使下一步误差下降最多的配置）都可以事先算出来，经典 sensor scheduling 用周期调度和剪枝搜索处理计算量（[Zhao et al. 2014](https://arxiv.org/abs/1312.0157)；[Vitus et al., Automatica 2012](https://www.cs.ox.ac.uk/people/alessandro.abate/publications/VZAHT12.pdf)）。测量结果本身有用的情形是模型未知或不平稳：innovation 显示某个 mode 变快了，调度随之改变。雷达跟踪机动目标时按 innovation 调整重访间隔就是这种做法（[van Keuk–Blackman, IEEE TAES 1993](https://ieeexplore.ieee.org/document/249124)）。Toy model 2 假设信号统计已知且平稳，没有检验这种情形。
 
 ## 7　这个方向的创新点
 
@@ -358,7 +360,7 @@ Toy model 显示这个组合是必要的：多个 mode 时，不调度的 entang
 2. 可用的测量依赖当前的 error covariance（lock constraint）。
 3. 测量消耗一种随机到达、会衰减的资源。
 
-**还没有回答的问题。** 节点数增加时，可选的纠缠方式按指数增长，离线调度算不动，调度的计算量和增益怎样随节点数变化？信号统计不平稳时，在线 feedback 是否开始有价值？存储的 entanglement 会衰减时，"现在用还是等" 怎样决策？
+**还没有回答的问题。** 节点数增加时，可选的纠缠方式按指数增长，离线调度算不动，调度的计算量和增益怎样随节点数变化？信号统计未知或不平稳时（例如 gradiometry 里环境噪声时强时弱），根据 innovation 在线调整纠缠调度，比按平均统计设计的离线调度好多少？存储的 entanglement 会衰减时，"现在用还是等" 怎样决策？
 
 ## 术语表
 

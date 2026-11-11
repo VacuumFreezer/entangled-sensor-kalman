@@ -325,9 +325,9 @@ Exact simulation, ample supply:
 | no entanglement | 4.85 |
 | use each pair on arrival ($b$ and $g$ alternately) | 12.4 |
 | spacing rule: after a G cycle, wait a fixed time before the next | 3.70 |
-| optimal policy (dynamic programming) | 3.74 |
+| optimal policy of the linear model (dynamic programming), used online as a lookup table | 3.74 |
 
-The optimal policy was computed in the linear Kalman filter model, where it beats the spacing rule by 0.7%; in the exact simulation the two differ by 1%, within statistical fluctuation.
+**How the optimal policy was computed.** In the linear Kalman filter model, the evolution of $P$ depends only on which measurement is chosen in each cycle (Section 2.6), so $(P_b,P_g,\text{whether a pair is buffered})$ is the state of a Markov decision process. The action in each cycle is the measurement type (S, B, G, or correlation spectroscopy, which uses only the product of the two outcomes) and $T$ (0.4 to 1 times the lock-constraint limit); the stage cost is the error accumulated during the cycle; pair arrival is random. The objective is the average cost per unit time, solved by value iteration on a $100\times100\times2$ grid, which gives a table from state to action. In the exact simulation the table is looked up with the real-time variances from the particle filter. The 3.74 is therefore the performance of the linear model's optimal policy in the exact model; the optimal policy of the exact model itself was not computed. In the linear model it beats the spacing rule by 0.7%; in the exact simulation the two differ by 1%, within statistical fluctuation.
 
 ![fig4](toy_model_A/fig4_scheduling.png)
 
@@ -342,6 +342,8 @@ The optimal policy was computed in the linear Kalman filter model, where it beat
 As noted in Section 2.6, in the linear model $P$ does not depend on the measured values, so the times at which to use G can be computed in advance and amount to a fixed spacing. In the exact simulation the measurement is nonlinear and $P$ fluctuates with the data, yet a policy that uses the real-time $P$ performs within 1% of the offline spacing rule.
 
 So **the measurement duration must be set online from the error covariance (lock constraint), while when and among which sensors to entangle can be designed offline.** This agrees with classical sensor scheduling.
+
+**When the optimal policy cannot be computed.** In this toy model the state is two variances and one buffer bit, which a grid can handle. With many nodes and modes the state is the full matrix $P$ plus a buffer per link, the actions are all entanglement configurations, and dynamic programming is intractable; it also needs exact knowledge of every $q_k$ and of the supply rate. Computational cost alone does not call for adapting the schedule to measured values, however. In the linear model any online rule based on $P$, for example choosing at each step the configuration that most reduces the next-step error, can be computed in advance, and classical sensor scheduling handles the computational cost with periodic schedules and pruned tree search ([Zhao et al. 2014](https://arxiv.org/abs/1312.0157); [Vitus et al., Automatica 2012](https://www.cs.ox.ac.uk/people/alessandro.abate/publications/VZAHT12.pdf)). Measured values matter when the model is unknown or nonstationary: the innovations reveal that a mode has sped up, and the schedule changes accordingly. Radar tracking of maneuvering targets adapts the revisit interval from the innovations in this way ([van Keuk–Blackman, IEEE TAES 1993](https://ieeexplore.ieee.org/document/249124)). Toy model 2 assumes known, stationary signal statistics and does not test this case.
 
 ## 7　What is new in this direction
 
@@ -358,7 +360,7 @@ The toy models show that the combination is necessary: with several modes, unsch
 2. The admissible measurements depend on the current error covariance (lock constraint).
 3. Measurements consume a resource that arrives at random and decays.
 
-**Open questions.** As the number of nodes grows, the number of entanglement configurations grows exponentially and offline scheduling becomes intractable: how do the computational cost and the gain of scheduling scale with the number of nodes? When the signal statistics are nonstationary, does online feedback start to pay off? When stored entanglement decays, how should one decide between using it now and waiting?
+**Open questions.** As the number of nodes grows, the number of entanglement configurations grows exponentially and offline scheduling becomes intractable: how do the computational cost and the gain of scheduling scale with the number of nodes? When the signal statistics are unknown or nonstationary (for example, ambient noise in gradiometry that comes and goes), how much does adapting the entanglement schedule online from the innovations gain over an offline schedule designed for the average statistics? When stored entanglement decays, how should one decide between using it now and waiting?
 
 ## Glossary
 
