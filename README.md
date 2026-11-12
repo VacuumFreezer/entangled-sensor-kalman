@@ -17,6 +17,7 @@ Tracking a time-varying field with a network of quantum sensors that can share e
 | `figures/` | Figures used only by the problem formulation, with the scripts that draw them |
 | `toy_model_A/toy_model_analysis_zh.md` | Toy model 1: entangled vs unentangled sensors, one mode (k sensors on one field; gradient under common-mode noise) |
 | `toy_model_A/toy3_scheduling_zh.md` | Toy model 2: scheduling rate-limited entanglement when two modes are tracked |
+| `toy_model_A/toy4_nuisance_zh.md` | Toy model 3: k sensors, one target mode, strong fast disturbance modes; partial entanglement and allocation of a limited supply of Bell pairs |
 | `toy_model_A/code/` | Simulation code (linear Kalman filter, dynamic programming, particle-filter simulation of binary outcomes) and saved results |
 | `literature/` | Surveys of prior work: entangled sensor networks, Kalman filtering for quantum sensors, related allocation work (Chinese) |
 
